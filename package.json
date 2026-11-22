@@ -39,6 +39,7 @@
     "url": "git+https://github.com/Wor-chain-dle/engine.git"
   },
   "scripts": {
+    "play": "npm run build && python3 python/play.py",
     "build": "tsc -p tsconfig.json",
     "lint": "prettier --check . && tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",

@@ -27,6 +27,11 @@ try {
     packed.files.some((file) => file.path === 'python/wor_chain_dle/client.py'),
   )
   assert(
+    packed.files.some(
+      (file) => file.path === 'python/wor_chain_dle/terminal.py',
+    ),
+  )
+  assert(
     !packed.files.some(
       (file) => file.path.includes('__pycache__') || file.path.endsWith('.pyc'),
     ),
@@ -114,6 +119,32 @@ print('Packed JSONL executable and Python client passed')
     ],
     { cwd: directory, stdio: 'inherit', timeout: 15000 },
   )
+  const terminalOutput = execFileSync(
+    python,
+    [
+      '-m',
+      'wor_chain_dle.terminal',
+      '--node',
+      process.execPath,
+      '--solution',
+      'prior',
+      '--no-color',
+    ],
+    {
+      cwd: directory,
+      env: {
+        ...process.env,
+        PYTHONPATH: join(installed, 'python'),
+        WCD_ENGINE_SERVER: join(installed, 'bin/wor-chain-dle-jsonl.mjs'),
+      },
+      input: 'prior\n/quit\n',
+      encoding: 'utf8',
+      timeout: 15000,
+    },
+  )
+  assert(terminalOutput.includes('Solved in 1/6!'))
+  assert(!terminalOutput.includes('"protocolVersion"'))
+  console.log('Packed human-readable terminal demo passed')
 
   writeFileSync(
     join(directory, 'consumer.ts'),

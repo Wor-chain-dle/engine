@@ -23,6 +23,26 @@ npm pack
 
 `npm test` builds the package and runs Node's test runner. Tests include execution of pinned original web code, without a sibling checkout or browser. `npm pack` builds a local installable tarball; it does not publish it.
 
+## Play in your terminal
+
+```bash
+npm run play
+# Fixed answer for testing:
+npm run play -- --solution prior
+```
+
+The Python demo displays the board, locked chain letter, readable feedback, and action counters while handling JSONL internally. Answers are randomly chosen by default; `--seed 123` makes the answer sequence reproducible.
+
+- Enter a complete word to submit it, or a single letter to edit the draft.
+- `/type TEXT` appends editable letters; `/bs` deletes the last one.
+- An empty line or `/enter` submits the draft.
+- `/help` shows commands, `/new` starts another game, and `/quit` or Ctrl+D exits.
+- Green, purple, and gray letters indicate correct, present, and absent feedback; `[X]` marks a locked cell.
+
+This is a line-oriented demo: press Enter after each word or command. Physical Backspace used to edit the terminal line is handled locally; `/bs` sends an engine deletion. Full-word submissions do not fabricate individual key presses. `/new` keeps a fixed `--solution` when supplied. The answer is revealed only after game termination.
+
+After building, you can also run `python3 python/play.py` directly. `--no-color` disables ANSI colors. The installed package includes the module entrypoint `python3 -m wor_chain_dle.terminal` when its `python` directory is on `PYTHONPATH`.
+
 ## Play a game programmatically
 
 Install a locally packed artifact in a consumer:
@@ -127,7 +147,7 @@ The Node-only `bin/wor-chain-dle-jsonl.mjs` executable runs a persistent stdio s
 
 `python/wor_chain_dle/` provides a standard-library reference client with a response timeout and process cleanup. Run `npm run test:python` to verify 100 game cases in word, serial-key, and batch-key modes against direct engine calls. See [JSONL protocol and Python usage](docs/JSONL_PROTOCOL.md).
 
-LLM providers, candidate filtering, entropy strategies, a general training/evaluation runner, and interactive CLI are not implemented. Website UI, persistence, Daily countdown, records, achievements, cosmetics, and seasonal effects remain outside the engine.
+LLM providers, candidate filtering, entropy strategies, and a general training/evaluation runner are not implemented. Website UI, persistence, Daily countdown, records, achievements, cosmetics, and seasonal effects remain outside the engine.
 
 ## License
 

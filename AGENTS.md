@@ -11,8 +11,8 @@ import this file and contain only tool-specific notes.
 - The initial v1.0.0 extraction includes standard rules, immutable game transitions,
   observations, replay, explicit-input answer selection, and a model-neutral input
   session for key actions and whole-word submissions. A JSONL stdio transport and
-  standard-library Python client are available. Web integration, seasonal mechanics,
-  interactive CLI, and solver strategies are separate work.
+  standard-library Python client and a line-oriented terminal demo are available.
+  Web integration, seasonal mechanics, and solver strategies are separate work.
 - The package is private and unpublished. There is no publishing workflow yet.
 - Do not describe planned commands or automation as already available. Update this
   guide with actual commands and structure when the tooling is implemented.
@@ -159,6 +159,9 @@ import this file and contain only tool-specific notes.
   `@wor-chain-dle/engine/jsonl`, separately from the browser entrypoint.
 - `bin/wor-chain-dle-jsonl.mjs`: bounded UTF-8 stdio framing, no stdout diagnostics.
 - `python/wor_chain_dle/`: Python 3.9+ reference client, no third-party dependencies.
+- `python/play.py`, `python/wor_chain_dle/terminal.py`: human-readable terminal demo;
+  rendering and messages belong in this adapter, not engine rule code. Physical
+  terminal line editing must not be reported as observed engine key actions.
 - `python/tests/`, `python/verify_bridge.py`: lifecycle tests and 100-case parity
   validation. The validator is not a solver benchmark or training framework.
 - `docs/JSONL_PROTOCOL.md`: wire schema, limits, batching, client, and measurements.
@@ -168,6 +171,9 @@ import this file and contain only tool-specific notes.
   not equivalent to an adaptive policy receiving observations between actions.
 - `dist/`: generated JavaScript/declarations; ignored by Git and included in packs.
 - `npm ci`: install the locked development and runtime dependencies.
+- `npm run play`: build and launch the terminal demo; forwards arguments such as
+  `--solution prior` or `--seed 123`. Uses `python3`; custom Python executables can
+  invoke `python/play.py` directly after building.
 - `npm run lint`: Prettier check and TypeScript type check.
 - `npm run format`: format maintained files; upstream fixtures are excluded.
 - `npm run build`: compile the ESM package and declarations.
