@@ -1,10 +1,10 @@
-# Wor-chain-dle Engine
+# Wor🔗dle
 
 Shared, deterministic game rules for the [Wor-chain-dle web game](https://github.com/Ootzk/Wor-chain-dle), future CLI clients, and solving agents.
 
 ## Status
 
-Initial engine extraction for v1.0.0 is in development. This is an ESM TypeScript package with declarations, not yet published to a registry. `private: true` prevents publishing until the registry and release process are configured.
+The initial engine release is v0.1.0. This is an ESM TypeScript package with declarations. Release packages are distributed as GitHub Release assets; `private: true` prevents accidental registry publication.
 
 The existing web game is unchanged. Integration will happen on a separate experimental branch after the engine is verified. See [extraction provenance and compatibility](docs/EXTRACTION.md) for the source commit, preserved behavior, and known boundaries.
 
@@ -22,6 +22,43 @@ npm pack
 ```
 
 `npm test` builds the package and runs Node's test runner. Tests include execution of pinned original web code, without a sibling checkout or browser. `npm pack` builds a local installable tarball; it does not publish it.
+
+## Releases and installation
+
+After CI passes for a `Release v0.1.0` PR merged from `release/v0.1.0` into `main`, automation creates the `v0.1.0` tag at that exact merge commit and publishes a GitHub Release using the PR body as its notes. Each release attaches `wor-chain-dle-engine-0.1.0.tgz` and its `.sha256` checksum. Later releases follow the same version convention. Nothing is published to npm or GitHub Packages.
+
+The workflow stages assets in a draft before publication. A failed release job can be rerun; it resumes a draft, rejects a tag pointing elsewhere, and leaves an already published release unchanged. Keep the manifest version, release branch, and PR title aligned. Bump both npm manifests with `npm version <version> --no-git-tag-version` before opening the release PR.
+
+### Use from GPT or another consumer
+
+Run these commands in the consumer repository **after v0.1.0 is published**. Downloading an explicit version and committing the consumer's `package-lock.json` keeps experiments reproducible.
+
+```bash
+mkdir -p /tmp/wcd-engine-v0.1.0
+gh release download v0.1.0 --repo Wor-chain-dle/engine \
+  --pattern 'wor-chain-dle-engine-0.1.0.tgz*' --dir /tmp/wcd-engine-v0.1.0
+(cd /tmp/wcd-engine-v0.1.0 && shasum -a 256 -c wor-chain-dle-engine-0.1.0.tgz.sha256)
+npm install --save-exact https://github.com/Wor-chain-dle/engine/releases/download/v0.1.0/wor-chain-dle-engine-0.1.0.tgz
+```
+
+Node.js 22+ is required even when the solver uses Python. The package includes the compiled engine, JSONL executable, and Python reference client. It is an engine package, not a pip package. For example, run this from the consumer root:
+
+```python
+from pathlib import Path
+import sys
+
+engine = Path("node_modules/@wor-chain-dle/engine").resolve()
+sys.path.insert(0, str(engine / "python"))
+from wor_chain_dle import EngineClient
+
+with EngineClient(["node", str(engine / "bin/wor-chain-dle-jsonl.mjs")]) as client:
+    print(client.info)  # Record engine and protocol versions with experiments.
+    client.create("demo", "prior")  # Only the environment chooses the answer.
+    result = client.act("demo", {"type": "submit", "word": "prior"})
+    print(result["feedback"]["code"])  # win
+```
+
+Give the model observations and feedback only; keep answer selection and creation requests inside the environment adapter. Package verification runs an isolated installed-package consumer through ESM, TypeScript, JSONL, Python, and the terminal demo without relying on a sibling engine checkout.
 
 ## Play in your terminal
 
@@ -48,7 +85,7 @@ After building, you can also run `python3 python/play.py` directly. `--no-color`
 Install a locally packed artifact in a consumer:
 
 ```bash
-npm install /path/to/wor-chain-dle-engine-1.0.0.tgz
+npm install /path/to/wor-chain-dle-engine-0.1.0.tgz
 ```
 
 ```ts
