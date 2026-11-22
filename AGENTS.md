@@ -8,8 +8,9 @@ import this file and contain only tool-specific notes.
 
 - This repository owns the shared game engine for the Wor-chain-dle web game and
   solving agents. The initial implementation is planned as a TypeScript package.
-- The repository currently contains initialization documents only. There is no
-  package manifest, implementation, test runner, CI, or publishing workflow yet.
+- The repository currently contains initialization documents and a CI workflow.
+  There is no package manifest, engine implementation, test runner, or publishing
+  workflow yet. The first target release is v1.0.0.
 - Do not describe planned commands or automation as already available. Update this
   guide with actual commands and structure when the tooling is implemented.
 - Engine, web, and solver versions are independent. Do not copy the web game's
@@ -33,8 +34,8 @@ import this file and contain only tool-specific notes.
 
 - `main`: stable integration point for reviewed releases; keep it releasable once
   package tooling exists. Do not implement features directly on `main`.
-- `release/{version}`: release integration branch created from `main`, for example
-  `release/0.1.0`. This example does not select the first release version.
+- `release/v{version}`: release integration branch created from `main`, for example
+  `release/v1.0.0`.
 - Create feature branches from their target release branch and PR back into it.
 - Use descriptive branches such as `feature/game-state`, `fix/duplicate-feedback`,
   `refactor/chain-rules`, `docs/agent-guide`, or `chore/package-setup`.
@@ -81,7 +82,7 @@ import this file and contain only tool-specific notes.
 - A feature PR into a release branch may not auto-close its issues until release.
   Add every completed issue to the release PR body with `Closes #number`.
 - Assignee: `Ootzk`.
-- Milestone: target engine version such as `v0.1.0`; create it if missing once the
+- Milestone: target engine version such as `v1.0.0`; create it if missing once the
   target version is established. Leave unscheduled backlog work without a milestone.
 - Choose labels by change type from the taxonomy below. Create missing relevant
   labels when setting up repository metadata; they are not currently provisioned.
@@ -100,8 +101,8 @@ import this file and contain only tool-specific notes.
 
 ## Versions And Releases
 
-- Use full semantic versions. Branches use `release/0.1.0`; milestones, tags,
-  release titles, and prose use `v0.1.0`; manifests use bare `0.1.0`.
+- Use full semantic versions. Branches use `release/v1.0.0`; milestones, tags,
+  release titles, and prose use `v1.0.0`; manifests use bare `1.0.0`.
 - Public contracts include exported types and functions, validation and feedback
   behavior, termination semantics, serialized state, and observation formats.
 - Use patch releases for compatible fixes, minor releases for compatible features,
@@ -122,6 +123,22 @@ import this file and contain only tool-specific notes.
   been configured. A push to `main` currently does not publish or create a release.
 - Keep release tags and package versions aligned; do not overwrite published
   versions or move existing release tags. Fix published problems in a new version.
+
+## Continuous Integration
+
+- `.github/workflows/ci.yml` runs on all pull requests and pushes to `main` and
+  `release/**`. Its `test` job provides the check required by the main Ruleset.
+- CI uses Node.js 22 and read-only repository permissions. It does not publish
+  packages, create release tags, deploy the web game, or merge pull requests.
+- Before a package manifest exists, CI checks initialization documents and rejects
+  JavaScript/TypeScript source without package tooling. A bootstrap pass is not an
+  engine test result.
+- Once `package.json` exists, CI requires a lockfile and the `lint`, `test`, and
+  `build` scripts. It runs `npm ci`, `npm run lint`, `npm test`, `npm run build`, and
+  `npm pack --dry-run`. Implement those scripts with the package setup; do not
+  silently skip missing checks or pass an empty test suite.
+- `npm pack --dry-run` checks package contents but does not replace release-time
+  installation and verification of the actual packed artifact in a consumer.
 
 ## Extraction And Verification
 

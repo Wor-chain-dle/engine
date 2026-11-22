@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'release/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check patch whitespace
+        run: git show --format= --check HEAD
+      - name: Check repository bootstrap
+        if: ${{ hashFiles('package.json') == '' }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for filename in ('README.md', 'LICENSE', 'AGENTS.md'):
+              path = Path(filename)
+              assert path.is_file() and path.read_text().strip(), filename
+          source_files = [
+              path for path in Path('.').rglob('*')
+              if '.git' not in path.parts and path.is_file()
+              and path.suffix in ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs')
+          ]
+          assert not source_files, 'Engine source requires package.json and package checks'
+          print('Bootstrap documents checked; engine implementation is not present yet.')
+          PY
+      - name: Check package
+        if: ${{ hashFiles('package.json') != '' }}
+        env:
+          CI: 'true'
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+          npm pack --dry-run
