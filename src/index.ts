@@ -33,3 +33,19 @@ export {
   SELECTION_VERSION,
 } from './selection.js'
 export type { CalendarDateInput } from './selection.js'
+export {
+  INPUT_PROTOCOL_VERSION,
+  INPUT_FEEDBACK_CODES,
+  createInputSession,
+  observeInput,
+  applyInput,
+} from './input.js'
+export type {
+  InputAction,
+  InputFeedbackCode,
+  InputStats,
+  InputSession,
+  InputDraft,
+  InputObservation,
+  InputResult,
+} from './input.js'
