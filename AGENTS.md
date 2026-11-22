@@ -1,4 +1,4 @@
-# Wor-chain-dle Engine Agent Guide
+# Wor🔗dle Agent Guide
 
 This is the canonical, tool-neutral guide for agents working in `Wor-chain-dle/engine`.
 Read it before non-trivial work. Tool-specific entrypoints such as `CLAUDE.md` should
@@ -8,12 +8,13 @@ import this file and contain only tool-specific notes.
 
 - This repository owns the shared game engine for the Wor-chain-dle web game and
   solving agents. It is an ESM TypeScript package with generated declarations.
-- The initial v1.0.0 extraction includes standard rules, immutable game transitions,
+- The initial v0.1.0 extraction includes standard rules, immutable game transitions,
   observations, replay, explicit-input answer selection, and a model-neutral input
   session for key actions and whole-word submissions. A JSONL stdio transport and
   standard-library Python client and a line-oriented terminal demo are available.
   Web integration, seasonal mechanics, and solver strategies are separate work.
-- The package is private and unpublished. There is no publishing workflow yet.
+- The package remains registry-private. Main release merges publish versioned GitHub
+  Release tarball/checksum assets, not npm or GitHub Packages entries.
 - Do not describe planned commands or automation as already available. Update this
   guide with actual commands and structure when the tooling is implemented.
 - Engine, web, and solver versions are independent. Do not copy the web game's
@@ -43,7 +44,7 @@ import this file and contain only tool-specific notes.
 - `main`: stable integration point for reviewed releases; keep it releasable once
   package tooling exists. Do not implement features directly on `main`.
 - `release/v{version}`: release integration branch created from `main`, for example
-  `release/v1.0.0`.
+  `release/v0.1.0`.
 - Create feature branches from their target release branch and PR back into it.
 - Use descriptive branches such as `feature/game-state`, `fix/duplicate-feedback`,
   `refactor/chain-rules`, `docs/agent-guide`, or `chore/package-setup`.
@@ -90,7 +91,7 @@ import this file and contain only tool-specific notes.
 - A feature PR into a release branch may not auto-close its issues until release.
   Add every completed issue to the release PR body with `Closes #number`.
 - Assignee: `Ootzk`.
-- Milestone: target engine version such as `v1.0.0`; create it if missing once the
+- Milestone: target engine version such as `v0.1.0`; create it if missing once the
   target version is established. Leave unscheduled backlog work without a milestone.
 - Choose labels by change type from the taxonomy below. Create missing relevant
   labels when setting up repository metadata rather than assuming all exist.
@@ -109,8 +110,8 @@ import this file and contain only tool-specific notes.
 
 ## Versions And Releases
 
-- Use full semantic versions. Branches use `release/v1.0.0`; milestones, tags,
-  release titles, and prose use `v1.0.0`; manifests use bare `1.0.0`.
+- Use full semantic versions. Branches use `release/v0.1.0`; milestones, tags,
+  release titles, and prose use `v0.1.0`; manifests use bare `0.1.0`.
 - Public contracts include exported types and functions, validation and feedback
   behavior, termination semantics, serialized state, and observation formats.
 - Use patch releases for compatible fixes, minor releases for compatible features,
@@ -127,8 +128,13 @@ import this file and contain only tool-specific notes.
 - Before release, run available package checks and validate the packed artifact in
   a consumer. Do not treat success against a sibling source checkout as proof that
   an installed package works.
-- Publishing registry, package name, credentials, and release automation have not
-  been configured. A push to `main` currently does not publish or create a release.
+- After CI succeeds on a push to `main`, `scripts/release.mjs` requires the exact
+  merged `Release v{version}` PR from `release/v{version}` and uses its body as notes.
+  It tags that merge SHA and attaches the compiled `.tgz` and SHA-256 checksum to
+  a GitHub Release. No registry credentials or npm publication are involved.
+- Failed release jobs may be rerun: drafts resume, existing published releases stay
+  unchanged, and tags pointing to another commit are rejected. Never replace assets
+  on a published release; fix released problems with a new version.
 - Keep release tags and package versions aligned; do not overwrite published
   versions or move existing release tags. Fix published problems in a new version.
 
@@ -136,8 +142,9 @@ import this file and contain only tool-specific notes.
 
 - `.github/workflows/ci.yml` runs on all pull requests and pushes to `main` and
   `release/**`. Its `test` job provides the check required by the main Ruleset.
-- CI uses Node.js 22, Python 3.11, and read-only repository permissions. It does not publish
-  packages, create release tags, deploy the web game, or merge pull requests.
+- The `test` job uses Node.js 22, Python 3.11, and read-only permissions. The
+  dependent main-push-only `release` job has contents-write and PR-read permissions
+  to create tags and GitHub Release assets. Neither job merges PRs or deploys the web.
 - CI runs `npm ci`, `npm run lint`, `npm test`, `npm run test:python`, `npm run build`, and
   `npm run test:package`. Do not silently skip missing checks or pass an empty suite.
 - Package verification packs the compiled artifact, installs it in an isolated
@@ -152,6 +159,7 @@ import this file and contain only tool-specific notes.
   Never run a formatter over these fixtures. Follow `docs/EXTRACTION.md` when
   intentionally changing the compatibility baseline.
 - `scripts/verify-package.mjs`: installed-artifact and declaration verification.
+- `scripts/release.mjs`: exact-merge release notes, tag, tarball/checksum publication.
 - `docs/EXTRACTION.md`: source attribution, adaptations, and compatibility limits.
 - `src/input.ts` and `docs/INPUT_PROTOCOL.md`: model-neutral input session and its
   versioned actions, observations, feedback, and counter semantics.
