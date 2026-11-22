@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/Ootzk/Wor-chain-dle",
+  "commit": "b25c70cf91c0c02b7b428e016dc258255111f59e",
+  "webVersion": "1.7.0",
+  "files": {
+    "src/lib/chain.ts": "473fe3fd5cd7667369891c56da573d62dd49976a625847fb4bbabbf8768cc17c",
+    "src/lib/statuses.ts": "6e264d8f409fd2e9efa40e823a38db0f11c45363179476ef7a3b9b612b7312c8",
+    "src/lib/words.ts": "435ede750df5a805221ea9dfac577246d4f676a204ba67034789a6917d0c3682",
+    "src/lib/events.ts": "1ecbc92e9745048a1b5d5e7fa2286ab240bdd16ccd7098353fdd757ee84e0fa1",
+    "src/lib/tokenizer.ts": "f1f990b3f2f5d1b9cb94376a0eecc5842ba41887d3ce2c6c3009d05aa489547a",
+    "src/constants/orthography.ts": "c239dfd4c16baf36fec8e792c27d51c7b2b3f77904abfb4468ced6ddd6ba11e8",
+    "src/constants/config.ts": "3bf85f4efdc63e29e803021aaa79b0646c1b2c5743e77980ab206630bb64d9fa",
+    "src/constants/wordlist.ts": "0d66d8fc70ab5bcb340f64bf1405609fd9cc126cd4bff669c544db653758b625",
+    "src/constants/validGuesses.ts": "2c887182580205dd0ed4e6aa40ea8352d3b270dec3863a3e767b12056366ed96",
+    "src/App.tsx": "7cb25bcb49851658d0826ff9bd36eb878f76c7032bfadc9e0056c662be38f3f1",
+    "scripts/shuffle-wordlist.js": "8769024fd9e919c282b254f834ad8a6c258850b6b1f01242ac62d5695dc04b1a"
+  }
+}

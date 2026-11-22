@@ -7,10 +7,11 @@ import this file and contain only tool-specific notes.
 ## Purpose And Current Status
 
 - This repository owns the shared game engine for the Wor-chain-dle web game and
-  solving agents. The initial implementation is planned as a TypeScript package.
-- The repository currently contains initialization documents and a CI workflow.
-  There is no package manifest, engine implementation, test runner, or publishing
-  workflow yet. The first target release is v1.0.0.
+  solving agents. It is an ESM TypeScript package with generated declarations.
+- The initial v1.0.0 extraction includes standard rules, immutable game transitions,
+  observations, replay, and explicit-input answer selection. Web integration,
+  seasonal mechanics, CLI transport, and solver strategies are separate work.
+- The package is private and unpublished. There is no publishing workflow yet.
 - Do not describe planned commands or automation as already available. Update this
   guide with actual commands and structure when the tooling is implemented.
 - Engine, web, and solver versions are independent. Do not copy the web game's
@@ -85,19 +86,19 @@ import this file and contain only tool-specific notes.
 - Milestone: target engine version such as `v1.0.0`; create it if missing once the
   target version is established. Leave unscheduled backlog work without a milestone.
 - Choose labels by change type from the taxonomy below. Create missing relevant
-  labels when setting up repository metadata; they are not currently provisioned.
+  labels when setting up repository metadata rather than assuming all exist.
 - Apply labels to new and ongoing work, not completed historical items.
 
-| Label | Use |
-| --- | --- |
-| `development: enhancement` | New engine capabilities or public APIs |
-| `development: refactor` | Internal restructuring without intended behavior changes |
-| `development: content` | Dictionary or other engine data additions |
-| `development: devops` | Tooling, CI, packaging, publishing, and agent workflows |
-| `🐛 bug` | Incorrect behavior or regressions |
-| `📝 documentation` | Documentation changes |
-| `💥 breaking change` | Incompatible public contracts |
-| `🔖 versioning` | Required on release-to-main PRs |
+| Label                      | Use                                                      |
+| -------------------------- | -------------------------------------------------------- |
+| `development: enhancement` | New engine capabilities or public APIs                   |
+| `development: refactor`    | Internal restructuring without intended behavior changes |
+| `development: content`     | Dictionary or other engine data additions                |
+| `development: devops`      | Tooling, CI, packaging, publishing, and agent workflows  |
+| `🐛 bug`                   | Incorrect behavior or regressions                        |
+| `📝 documentation`         | Documentation changes                                    |
+| `💥 breaking change`       | Incompatible public contracts                            |
+| `🔖 versioning`            | Required on release-to-main PRs                          |
 
 ## Versions And Releases
 
@@ -130,15 +131,30 @@ import this file and contain only tool-specific notes.
   `release/**`. Its `test` job provides the check required by the main Ruleset.
 - CI uses Node.js 22 and read-only repository permissions. It does not publish
   packages, create release tags, deploy the web game, or merge pull requests.
-- Before a package manifest exists, CI checks initialization documents and rejects
-  JavaScript/TypeScript source without package tooling. A bootstrap pass is not an
-  engine test result.
-- Once `package.json` exists, CI requires a lockfile and the `lint`, `test`, and
-  `build` scripts. It runs `npm ci`, `npm run lint`, `npm test`, `npm run build`, and
-  `npm pack --dry-run`. Implement those scripts with the package setup; do not
-  silently skip missing checks or pass an empty test suite.
-- `npm pack --dry-run` checks package contents but does not replace release-time
-  installation and verification of the actual packed artifact in a consumer.
+- CI runs `npm ci`, `npm run lint`, `npm test`, `npm run build`, and
+  `npm run test:package`. Do not silently skip missing checks or pass an empty suite.
+- Package verification packs the compiled artifact, installs it in an isolated
+  temporary consumer, executes it, and type-checks its installed declarations.
+
+## Structure And Commands
+
+- `src/`: browser-independent runtime code; `src/index.ts` is the public entrypoint.
+- `src/constants/`: ordered dictionaries and their content fingerprints.
+- `tests/`: Node test runner suites for engine behavior and original-source parity.
+- `tests/fixtures/upstream/`: unmodified pinned source and byte fingerprints.
+  Never run a formatter over these fixtures. Follow `docs/EXTRACTION.md` when
+  intentionally changing the compatibility baseline.
+- `scripts/verify-package.mjs`: installed-artifact and declaration verification.
+- `docs/EXTRACTION.md`: source attribution, adaptations, and compatibility limits.
+- `dist/`: generated JavaScript/declarations; ignored by Git and included in packs.
+- `npm ci`: install the locked development and runtime dependencies.
+- `npm run lint`: Prettier check and TypeScript type check.
+- `npm run format`: format maintained files; upstream fixtures are excluded.
+- `npm run build`: compile the ESM package and declarations.
+- `npm test`: build and run behavior and source-parity tests.
+- `npm run test:package`: build, pack, and test the installed artifact; requires
+  registry access to install runtime dependencies into the temporary consumer.
+- `npm pack`: build a local tarball without publishing it.
 
 ## Extraction And Verification
 
@@ -165,7 +181,7 @@ import this file and contain only tool-specific notes.
 - Extraction and web integration are separate reviewable changes. Verify web
   compatibility before replacing its existing implementation.
 - Documentation-only changes require diff and link/path review, not a full test
-  suite. Run implementation checks once actual tooling exists.
+  suite. Code changes require the relevant unit/parity and package checks.
 - Preserve the upstream MIT attribution when extracting code and dictionary data.
 
 ## Web Compatibility Contract
