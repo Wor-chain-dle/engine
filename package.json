@@ -16,7 +16,8 @@
   },
   "files": [
     "dist",
-    "docs/EXTRACTION.md"
+    "docs/EXTRACTION.md",
+    "docs/INPUT_PROTOCOL.md"
   ],
   "sideEffects": false,
   "engines": {

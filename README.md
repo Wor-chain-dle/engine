@@ -52,6 +52,35 @@ Actions are complete, lowercase five-letter words including the locked chain let
 
 `replayGame({ solution, guesses })` restores submitted history through the same validation and terminal checks. Rejecting malformed or post-terminal histories is deliberate; this is not an importer for arbitrary browser localStorage.
 
+## Character and complete-word input
+
+The input session supports both human-like key actions and complete-word agents:
+
+```ts
+import {
+  createGame,
+  createInputSession,
+  applyInput,
+} from '@wor-chain-dle/engine'
+
+let session = createInputSession(createGame({ solution: 'crane' }))
+session = applyInput(session, { type: 'type', letter: 'c' }).state
+session = applyInput(session, { type: 'backspace' }).state
+
+// Equivalent submission rules without synthetic key presses:
+const result = applyInput(session, { type: 'submit', word: 'stale' })
+session = result.state
+console.log(result.feedback.code) // word_submitted
+
+// Enter submits the current editable draft plus its locked chain letter.
+const incomplete = applyInput(session, { type: 'enter' })
+console.log(incomplete.feedback.code) // word_incomplete
+```
+
+Input observations expose the editable draft and locked cells without the solution. Feedback codes such as `word_incomplete`, `word_not_found`, and `input_full` are independent of UI language and LLM tokenization. Session counters record actual typing, deletion, Enter, and direct submissions. Always retain the returned state, including rejected actions, to keep those counters.
+
+See the [input and feedback protocol](docs/INPUT_PROTOCOL.md) for action shapes, every feedback code, draft behavior, metrics, and the boundary between engine and model adapters.
+
 ## Answer selection
 
 The core receives a solution; callers choose the selection policy. Shared helpers accept explicit inputs and never read the current clock.
@@ -88,6 +117,8 @@ The offline Daily shuffler seed `20260216` is provenance, not a command to reshu
 Exports include `getGuessStatuses`, `getStatuses`, `getChainInfo`, `buildFullGuess`, `isChainDeadEnd`, and dictionary lookup helpers. `WORDS` contains answer words, `VALIDGUESSES` additional guesses, and `ALLOWED_WORDS` their deduplicated union. All dictionary arrays are frozen.
 
 Record `RULES_VERSION`, `DICTIONARY_VERSION`, `DICTIONARY_METADATA`, and `SELECTION_VERSION` with experiments. Dictionary metadata contains the source commit and ordered-content fingerprints.
+
+For character-level interactions, also record `INPUT_PROTOCOL_VERSION`.
 
 LLM providers, candidate filtering, entropy strategies, batch evaluation, interactive CLI, and a JSON transport are not implemented in this initial extraction. They can consume this engine without duplicating rules. Website UI, persistence, Daily countdown, records, achievements, cosmetics, and seasonal effects remain outside the engine.
 

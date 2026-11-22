@@ -18,6 +18,7 @@ try {
   assert(packed.files.some((file) => file.path === 'dist/index.d.ts'))
   assert(packed.files.some((file) => file.path === 'LICENSE'))
   assert(packed.files.some((file) => file.path === 'docs/EXTRACTION.md'))
+  assert(packed.files.some((file) => file.path === 'docs/INPUT_PROTOCOL.md'))
   assert(
     !packed.files.some((file) => /^(src|tests|node_modules)\//.test(file.path)),
   )
@@ -43,6 +44,7 @@ try {
       createGame, observe, step, replayGame, getDailyWord,
       getEventWordOfDay, getRandomWord, createSeededRandom,
       WORDS, VALIDGUESSES, DICTIONARY_METADATA,
+      createInputSession, observeInput, applyInput, INPUT_PROTOCOL_VERSION,
     } from '@wor-chain-dle/engine';
     assert.equal(getDailyWord('2026-02-20').solution, 'hydro');
     assert.equal(getEventWordOfDay('v1.7.0-event', '2026-05-20').solution, 'smirk');
@@ -54,6 +56,20 @@ try {
     const initial = createGame({ solution: VALIDGUESSES[0] });
     assert.equal(JSON.stringify(observe(initial)).includes(VALIDGUESSES[0]), false);
     assert.equal(step(initial, VALIDGUESSES[0]).state.endReason, 'win');
+    let session = createInputSession(createGame({ solution: 'crane' }));
+    for (const letter of 'cranx') session = applyInput(session, { type: 'type', letter }).state;
+    const rejected = applyInput(session, { type: 'enter' });
+    assert.equal(rejected.feedback.code, 'word_not_found');
+    session = applyInput(rejected.state, { type: 'backspace' }).state;
+    session = applyInput(session, { type: 'type', letter: 'e' }).state;
+    const win = applyInput(session, { type: 'enter' });
+    assert.equal(win.feedback.code, 'win');
+    assert.equal(win.state.stats.backspacePresses, 1);
+    assert.equal(win.observation.input, null);
+    assert.equal(observeInput(session).inputProtocolVersion, INPUT_PROTOCOL_VERSION);
+    const direct = applyInput(createInputSession(createGame({ solution: 'crane' })), { type: 'submit', word: 'crane' });
+    assert.equal(direct.feedback.code, win.feedback.code);
+    assert.equal(direct.state.stats.lettersTyped, 0);
     console.log('Packed ESM consumer passed');
   `
   execFileSync(process.execPath, ['--input-type=module', '--eval', consumer], {
@@ -64,8 +80,8 @@ try {
   writeFileSync(
     join(directory, 'consumer.ts'),
     `
-    import { createGame, step, observe, getDailyWord } from '@wor-chain-dle/engine'
-    import type { Observation, ActionError } from '@wor-chain-dle/engine'
+    import { createGame, step, observe, getDailyWord, createInputSession, observeInput, applyInput } from '@wor-chain-dle/engine'
+    import type { Observation, ActionError, InputAction, InputObservation, InputResult, InputFeedbackCode } from '@wor-chain-dle/engine'
     const selection = getDailyWord('2026-02-20')
     if (selection.solution !== undefined) {
       const state = createGame({ solution: selection.solution })
@@ -74,6 +90,11 @@ try {
       if (!result.accepted) {
         const error: ActionError = result.error
       }
+      const session = createInputSession(state)
+      const action: InputAction = { type: 'type', letter: 'c' }
+      const input: InputObservation = observeInput(session)
+      const inputResult: InputResult = applyInput(session, action)
+      const code: InputFeedbackCode = inputResult.feedback.code
     }
   `,
   )

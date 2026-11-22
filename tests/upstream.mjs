@@ -107,6 +107,8 @@ export function createUpstream() {
     ts.ScriptKind.TSX,
   )
   let onEnter
+  let onChar
+  let onDelete
   let applyLoadedGameStatus
   function visit(node) {
     if (
@@ -117,6 +119,18 @@ export function createUpstream() {
     }
     if (
       ts.isVariableDeclaration(node) &&
+      node.name.getText(appSource) === 'onChar'
+    ) {
+      onChar = node.initializer.getText(appSource)
+    }
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.name.getText(appSource) === 'onDelete'
+    ) {
+      onDelete = node.initializer.getText(appSource)
+    }
+    if (
+      ts.isVariableDeclaration(node) &&
       node.name.getText(appSource) === 'applyLoadedGameStatus'
     ) {
       applyLoadedGameStatus = node.initializer.getText(appSource)
@@ -124,7 +138,7 @@ export function createUpstream() {
     ts.forEachChild(node, visit)
   }
   visit(appSource)
-  if (!onEnter || !applyLoadedGameStatus)
+  if (!onEnter || !onChar || !onDelete || !applyLoadedGameStatus)
     throw new Error('Original game callbacks not found')
   const submissionScript = new vm.Script(
     compile(`const onEnter = ${onEnter}; onEnter();`),
@@ -209,6 +223,114 @@ export function createUpstream() {
     return output
   }
 
+  function createInputHarness(solution) {
+    let pending = {}
+    let endReason = null
+    const counters = {
+      lettersTyped: 0,
+      backspacePresses: 0,
+      enterPresses: 0,
+      validSubmissions: 0,
+      incompleteSubmissions: 0,
+      invalidWordSubmissions: 0,
+      backspacesByInputLength: Array(config.wordLength + 1).fill(0),
+    }
+    const noop = () => {}
+    const callbacks = {}
+    const context = vm.createContext({
+      exports: callbacks,
+      ...chain,
+      CONFIG: config,
+      ORTHOGRAPHY_PATTERN: load('src/lib/tokenizer.ts').ORTHOGRAPHY_PATTERN,
+      isWinningWord: words.isWinningWord,
+      isWordInWordList: words.isWordInWordList,
+      solution,
+      guesses: [],
+      currentGuess: [],
+      isGameWon: false,
+      isGameLost: false,
+      isDaily: false,
+      stats: {},
+      playStats: {},
+      ALERT_TIME_MS: 2000,
+      setCurrentGuess: (value) => {
+        pending.currentGuess = value
+      },
+      setGuesses: (value) => {
+        pending.guesses = value
+      },
+      setIsGameWon: (value) => {
+        pending.isGameWon = value
+      },
+      setIsGameLost: (value) => {
+        pending.isGameLost = value
+      },
+      recordInputActivity: () => {
+        counters.lettersTyped++
+        return {}
+      },
+      recordDeletePress: (_, length) => {
+        counters.backspacePresses++
+        counters.backspacesByInputLength[length]++
+        return {}
+      },
+      recordEnterAttempt: (_, kind) => {
+        counters.enterPresses++
+        const key =
+          kind === 'valid'
+            ? 'validSubmissions'
+            : kind === 'incomplete'
+              ? 'incompleteSubmissions'
+              : 'invalidWordSubmissions'
+        counters[key]++
+        return {}
+      },
+      setTimeout: noop,
+      updatePlayStats: noop,
+      setIsNotEnoughLetters: noop,
+      setIsWordNotFoundAlertOpen: noop,
+      collectEventItemsForSubmission: noop,
+      countTileStatusesForGame: () => ({}),
+      completePlayStats: () => ({}),
+      evaluateCompletedGameAchievements: noop,
+      saveCompletedPlayStats: (_, reason) => {
+        endReason = reason
+      },
+      startNextGuess: noop,
+      addStatsForCompletedGame: noop,
+      setStats: noop,
+    })
+    vm.runInContext(
+      compile(`
+      const onChar = ${onChar};
+      const onDelete = ${onDelete};
+      const onEnter = ${onEnter};
+      exports.onChar = onChar; exports.onDelete = onDelete; exports.onEnter = onEnter;
+    `),
+      context,
+    )
+    return {
+      apply(action) {
+        pending = {}
+        if (action.type === 'type') callbacks.onChar(action.letter)
+        else if (action.type === 'backspace') callbacks.onDelete()
+        else if (action.type === 'enter') callbacks.onEnter()
+        else throw new Error('Original UI harness supports key actions only')
+        // React's setters do not update the callback's captured render during a call.
+        Object.assign(context, pending)
+        return {
+          buffer: context.currentGuess.join(''),
+          guesses: Array.from(context.guesses, (row) => row.join('')),
+          endReason,
+          counters: {
+            ...counters,
+            backspacesByInputLength: [...counters.backspacesByInputLength],
+          },
+        }
+      },
+    }
+  }
+
   return {
     words,
     chain,
@@ -218,6 +340,7 @@ export function createUpstream() {
     additionalGuesses,
     submit,
     restoreStatus,
+    createInputHarness,
     setDate: (value, zone = 'Asia/Seoul') => {
       date = value
       timeZone = zone

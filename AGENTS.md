@@ -9,7 +9,8 @@ import this file and contain only tool-specific notes.
 - This repository owns the shared game engine for the Wor-chain-dle web game and
   solving agents. It is an ESM TypeScript package with generated declarations.
 - The initial v1.0.0 extraction includes standard rules, immutable game transitions,
-  observations, replay, and explicit-input answer selection. Web integration,
+  observations, replay, explicit-input answer selection, and a model-neutral input
+  session for key actions and whole-word submissions. Web integration,
   seasonal mechanics, CLI transport, and solver strategies are separate work.
 - The package is private and unpublished. There is no publishing workflow yet.
 - Do not describe planned commands or automation as already available. Update this
@@ -20,11 +21,13 @@ import this file and contain only tool-specific notes.
 ## Repository Boundaries
 
 - Engine: standard game rules, word validation, tile feedback, chain constraints,
-  game creation, state transitions, and observations for agents.
-- Web: UI, keyboard input, localStorage, Daily date selection, records, achievements,
+  game creation, state transitions, observations, draft editing, structured input
+  feedback, and actual-action counters.
+- Web: UI, physical keyboard events, localStorage, Daily date selection, records, achievements,
   cosmetics, and deployment of the game website.
 - Solvers: LLM integrations, entropy strategies, training data generation, training,
-  experiment orchestration, and evaluation reports.
+  experiment orchestration, and evaluation reports. Model-specific token vocabularies,
+  chat templates, action-to-token mappings, and learning rewards belong here.
 - Seasonal Event rules are outside the initial extraction scope.
 - Keep the engine usable without React, DOM APIs, browser storage, network access,
   or implicit access to the current time. Inject randomness or seeds when needed.
@@ -146,6 +149,8 @@ import this file and contain only tool-specific notes.
   intentionally changing the compatibility baseline.
 - `scripts/verify-package.mjs`: installed-artifact and declaration verification.
 - `docs/EXTRACTION.md`: source attribution, adaptations, and compatibility limits.
+- `src/input.ts` and `docs/INPUT_PROTOCOL.md`: model-neutral input session and its
+  versioned actions, observations, feedback, and counter semantics.
 - `dist/`: generated JavaScript/declarations; ignored by Git and included in packs.
 - `npm ci`: install the locked development and runtime dependencies.
 - `npm run lint`: Prettier check and TypeScript type check.
@@ -175,7 +180,15 @@ import this file and contain only tool-specific notes.
   before present matches. Keep answer words and allowed guesses distinct; Custom
   puzzles can use answers from either list.
 - Keep hidden answers out of agent observations. Agents submit complete words,
-  including the locked chain letter; the engine validates that constraint.
+  including the locked chain letter, through the core `step` or input `submit`.
+  Character agents use input sessions with editable letters, Backspace, and Enter;
+  locked letters are supplied automatically and cannot be edited.
+- Both input modes share core validation and termination. Direct submissions must
+  not fabricate letter/Delete/Enter presses. Keep feedback language- and model-neutral;
+  do not add LLM special tokens or localized strings to runtime code.
+- Input failures preserve game and draft but can update action counters. Terminal
+  actions are no-ops. Never infer untracked historical input metrics when attaching
+  a session to an existing game. Update protocol documentation and tests for changes.
 - Add meaningful tests for rule changes, invalid actions, terminal states,
   determinism, serialization contracts, and hidden-answer isolation as implemented.
 - Extraction and web integration are separate reviewable changes. Verify web
