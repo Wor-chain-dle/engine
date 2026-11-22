@@ -10,8 +10,9 @@ import this file and contain only tool-specific notes.
   solving agents. It is an ESM TypeScript package with generated declarations.
 - The initial v1.0.0 extraction includes standard rules, immutable game transitions,
   observations, replay, explicit-input answer selection, and a model-neutral input
-  session for key actions and whole-word submissions. Web integration,
-  seasonal mechanics, CLI transport, and solver strategies are separate work.
+  session for key actions and whole-word submissions. A JSONL stdio transport and
+  standard-library Python client are available. Web integration, seasonal mechanics,
+  interactive CLI, and solver strategies are separate work.
 - The package is private and unpublished. There is no publishing workflow yet.
 - Do not describe planned commands or automation as already available. Update this
   guide with actual commands and structure when the tooling is implemented.
@@ -31,6 +32,9 @@ import this file and contain only tool-specific notes.
 - Seasonal Event rules are outside the initial extraction scope.
 - Keep the engine usable without React, DOM APIs, browser storage, network access,
   or implicit access to the current time. Inject randomness or seeds when needed.
+- Keep Node-only I/O in `bin/`, separate from the browser entrypoint. Transport
+  responses must allowlist observations/feedback/counters and never expose internal
+  sessions or selected solutions. Model adapters must not receive creation requests.
 - The web source currently lives at `Ootzk/Wor-chain-dle`. Its Organization migration
   is separate work. Do not assume a local sibling checkout exists in CI or releases.
 
@@ -132,9 +136,9 @@ import this file and contain only tool-specific notes.
 
 - `.github/workflows/ci.yml` runs on all pull requests and pushes to `main` and
   `release/**`. Its `test` job provides the check required by the main Ruleset.
-- CI uses Node.js 22 and read-only repository permissions. It does not publish
+- CI uses Node.js 22, Python 3.11, and read-only repository permissions. It does not publish
   packages, create release tags, deploy the web game, or merge pull requests.
-- CI runs `npm ci`, `npm run lint`, `npm test`, `npm run build`, and
+- CI runs `npm ci`, `npm run lint`, `npm test`, `npm run test:python`, `npm run build`, and
   `npm run test:package`. Do not silently skip missing checks or pass an empty suite.
 - Package verification packs the compiled artifact, installs it in an isolated
   temporary consumer, executes it, and type-checks its installed declarations.
@@ -151,6 +155,17 @@ import this file and contain only tool-specific notes.
 - `docs/EXTRACTION.md`: source attribution, adaptations, and compatibility limits.
 - `src/input.ts` and `docs/INPUT_PROTOCOL.md`: model-neutral input session and its
   versioned actions, observations, feedback, and counter semantics.
+- `src/jsonl.ts`: versioned process-local request dispatcher; exported through
+  `@wor-chain-dle/engine/jsonl`, separately from the browser entrypoint.
+- `bin/wor-chain-dle-jsonl.mjs`: bounded UTF-8 stdio framing, no stdout diagnostics.
+- `python/wor_chain_dle/`: Python 3.9+ reference client, no third-party dependencies.
+- `python/tests/`, `python/verify_bridge.py`: lifecycle tests and 100-case parity
+  validation. The validator is not a solver benchmark or training framework.
+- `docs/JSONL_PROTOCOL.md`: wire schema, limits, batching, client, and measurements.
+- Change transport versions, client constants, documentation, and tests together.
+  Transport errors must not be confused with ordinary rejected game actions.
+  Never automatically retry uncertain actions after a timeout. Batch replay is
+  not equivalent to an adaptive policy receiving observations between actions.
 - `dist/`: generated JavaScript/declarations; ignored by Git and included in packs.
 - `npm ci`: install the locked development and runtime dependencies.
 - `npm run lint`: Prettier check and TypeScript type check.
@@ -158,7 +173,10 @@ import this file and contain only tool-specific notes.
 - `npm run build`: compile the ESM package and declarations.
 - `npm test`: build and run behavior and source-parity tests.
 - `npm run test:package`: build, pack, and test the installed artifact; requires
-  registry access to install runtime dependencies into the temporary consumer.
+  registry access to install runtime dependencies into the temporary consumer and
+  Python to check the installed client/JSONL executable.
+- `npm run test:python`: build, run Python client tests, and compare 100 games in
+  three transport modes against direct engine execution. Set `PYTHON` if needed.
 - `npm pack`: build a local tarball without publishing it.
 
 ## Extraction And Verification

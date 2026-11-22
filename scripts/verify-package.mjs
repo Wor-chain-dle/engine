@@ -19,6 +19,18 @@ try {
   assert(packed.files.some((file) => file.path === 'LICENSE'))
   assert(packed.files.some((file) => file.path === 'docs/EXTRACTION.md'))
   assert(packed.files.some((file) => file.path === 'docs/INPUT_PROTOCOL.md'))
+  assert(packed.files.some((file) => file.path === 'docs/JSONL_PROTOCOL.md'))
+  assert(
+    packed.files.some((file) => file.path === 'bin/wor-chain-dle-jsonl.mjs'),
+  )
+  assert(
+    packed.files.some((file) => file.path === 'python/wor_chain_dle/client.py'),
+  )
+  assert(
+    !packed.files.some(
+      (file) => file.path.includes('__pycache__') || file.path.endsWith('.pyc'),
+    ),
+  )
   assert(
     !packed.files.some((file) => /^(src|tests|node_modules)\//.test(file.path)),
   )
@@ -77,11 +89,41 @@ try {
     stdio: 'inherit',
   })
 
+  const installed = join(directory, 'node_modules/@wor-chain-dle/engine')
+  const python = process.env.PYTHON || 'python3'
+  const pythonConsumer = `
+import sys
+sys.path.insert(0, sys.argv[1])
+from wor_chain_dle import EngineClient
+with EngineClient([sys.argv[2], sys.argv[3]]) as client:
+    client.create('packed', 'crane')
+    assert client.act('packed', {'type':'enter'})['feedback']['code'] == 'word_incomplete'
+    result = client.batch('packed', [{'type':'type','letter':c} for c in 'crane'] + [{'type':'enter'}])
+    assert result['results'][-1]['feedback']['code'] == 'win'
+    assert client.observe('packed')['stats']['enterPresses'] == 2
+print('Packed JSONL executable and Python client passed')
+`
+  execFileSync(
+    python,
+    [
+      '-c',
+      pythonConsumer,
+      join(installed, 'python'),
+      process.execPath,
+      join(installed, 'bin/wor-chain-dle-jsonl.mjs'),
+    ],
+    { cwd: directory, stdio: 'inherit', timeout: 15000 },
+  )
+
   writeFileSync(
     join(directory, 'consumer.ts'),
     `
     import { createGame, step, observe, getDailyWord, createInputSession, observeInput, applyInput } from '@wor-chain-dle/engine'
     import type { Observation, ActionError, InputAction, InputObservation, InputResult, InputFeedbackCode } from '@wor-chain-dle/engine'
+    import { createJsonlDispatcher, JSONL_PROTOCOL_VERSION } from '@wor-chain-dle/engine/jsonl'
+    import type { JsonlRequest, JsonlResponse } from '@wor-chain-dle/engine/jsonl'
+    const request: JsonlRequest = { id: 1, protocolVersion: JSONL_PROTOCOL_VERSION, op: 'info' }
+    const response: JsonlResponse = createJsonlDispatcher('test')(request)
     const selection = getDailyWord('2026-02-20')
     if (selection.solution !== undefined) {
       const state = createGame({ solution: selection.solution })

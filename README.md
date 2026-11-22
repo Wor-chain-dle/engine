@@ -10,12 +10,13 @@ The existing web game is unchanged. Integration will happen on a separate experi
 
 ## Development
 
-Use Node.js 22 or later.
+Use Node.js 22 or later. Python 3.9 or later is required for Python bridge and installed-package checks.
 
 ```bash
 npm ci
 npm run lint
 npm test
+npm run test:python
 npm run build
 npm pack
 ```
@@ -120,7 +121,13 @@ Record `RULES_VERSION`, `DICTIONARY_VERSION`, `DICTIONARY_METADATA`, and `SELECT
 
 For character-level interactions, also record `INPUT_PROTOCOL_VERSION`.
 
-LLM providers, candidate filtering, entropy strategies, batch evaluation, interactive CLI, and a JSON transport are not implemented in this initial extraction. They can consume this engine without duplicating rules. Website UI, persistence, Daily countdown, records, achievements, cosmetics, and seasonal effects remain outside the engine.
+## JSONL and Python
+
+The Node-only `bin/wor-chain-dle-jsonl.mjs` executable runs a persistent stdio server. It supports multiple sessions, observation, single actions, batches, reset, and cleanup. Game responses include only public observations, feedback, and action counters. The browser entrypoint does not import Node modules.
+
+`python/wor_chain_dle/` provides a standard-library reference client with a response timeout and process cleanup. Run `npm run test:python` to verify 100 game cases in word, serial-key, and batch-key modes against direct engine calls. See [JSONL protocol and Python usage](docs/JSONL_PROTOCOL.md).
+
+LLM providers, candidate filtering, entropy strategies, a general training/evaluation runner, and interactive CLI are not implemented. Website UI, persistence, Daily countdown, records, achievements, cosmetics, and seasonal effects remain outside the engine.
 
 ## License
 

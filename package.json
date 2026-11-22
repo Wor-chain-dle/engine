@@ -12,12 +12,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./jsonl": {
+      "types": "./dist/jsonl.d.ts",
+      "import": "./dist/jsonl.js",
+      "default": "./dist/jsonl.js"
     }
+  },
+  "bin": {
+    "wor-chain-dle-jsonl": "bin/wor-chain-dle-jsonl.mjs"
   },
   "files": [
     "dist",
     "docs/EXTRACTION.md",
-    "docs/INPUT_PROTOCOL.md"
+    "docs/INPUT_PROTOCOL.md",
+    "docs/JSONL_PROTOCOL.md",
+    "bin",
+    "python/wor_chain_dle/*.py"
   ],
   "sideEffects": false,
   "engines": {
@@ -33,6 +44,7 @@
     "format": "prettier --write .",
     "test": "npm run build && node --test tests/*.test.mjs",
     "test:package": "npm run build && node scripts/verify-package.mjs",
+    "test:python": "npm run build && node scripts/verify-python.mjs",
     "prepack": "npm run build"
   },
   "dependencies": {
