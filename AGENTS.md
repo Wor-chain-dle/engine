@@ -1,0 +1,277 @@
+# Wor🔗dle Agent Guide
+
+This is the canonical, tool-neutral guide for agents working in `Wor-chain-dle/engine`.
+Read it before non-trivial work. Tool-specific entrypoints such as `CLAUDE.md` should
+import this file and contain only tool-specific notes.
+
+## Purpose And Current Status
+
+- This repository owns the shared game engine for the Wor-chain-dle web game and
+  solving agents. It is an ESM TypeScript package with generated declarations.
+- The initial v0.1.0 extraction includes standard rules, immutable game transitions,
+  observations, replay, explicit-input answer selection, and a model-neutral input
+  session for key actions and whole-word submissions. A JSONL stdio transport and
+  standard-library Python client and a line-oriented terminal demo are available.
+  Web integration, seasonal mechanics, and solver strategies are separate work.
+- The package remains registry-private. Main release merges publish versioned GitHub
+  Release tarball/checksum assets, not npm or GitHub Packages entries.
+- Do not describe planned commands or automation as already available. Update this
+  guide with actual commands and structure when the tooling is implemented.
+- Engine, web, and solver versions are independent. Do not copy the web game's
+  version into the engine or update sibling repositories as part of a version bump.
+
+## Repository Boundaries
+
+- Engine: standard game rules, word validation, tile feedback, chain constraints,
+  game creation, state transitions, observations, draft editing, structured input
+  feedback, and actual-action counters.
+- Web: UI, physical keyboard events, localStorage, Daily date selection, records, achievements,
+  cosmetics, and deployment of the game website.
+- Solvers: LLM integrations, entropy strategies, training data generation, training,
+  experiment orchestration, and evaluation reports. Model-specific token vocabularies,
+  chat templates, action-to-token mappings, and learning rewards belong here.
+- Seasonal Event rules are outside the initial extraction scope.
+- Keep the engine usable without React, DOM APIs, browser storage, network access,
+  or implicit access to the current time. Inject randomness or seeds when needed.
+- Keep Node-only I/O in `bin/`, separate from the browser entrypoint. Transport
+  responses must allowlist observations/feedback/counters and never expose internal
+  sessions or selected solutions. Model adapters must not receive creation requests.
+- The web source currently lives at `Ootzk/Wor-chain-dle`. Its Organization migration
+  is separate work. Do not assume a local sibling checkout exists in CI or releases.
+
+## Branching
+
+- `main`: stable integration point for reviewed releases; keep it releasable once
+  package tooling exists. Do not implement features directly on `main`.
+- `release/v{version}`: release integration branch created from `main`, for example
+  `release/v0.1.0`.
+- Create feature branches from their target release branch and PR back into it.
+- Use descriptive branches such as `feature/game-state`, `fix/duplicate-feedback`,
+  `refactor/chain-rules`, `docs/agent-guide`, or `chore/package-setup`.
+- A release branch PR targets `main` and is titled exactly `Release v{version}`.
+- Before the first release branch exists, repository setup and documentation PRs
+  may target `main`. Engine implementation follows the release-branch workflow.
+- Determine the target release from the issue or existing release plan. Do not
+  invent a release version or reuse the web release milestone by assumption.
+- PR merges are always performed by the developer, never by agents.
+- Feature PRs are squash-merged. Release PRs should preserve release ancestry with
+  a merge commit so that subsequent release comparisons remain meaningful.
+- After review starts, prefer follow-up commits over amending or rewriting history.
+  Tiny, local-only fixes before review may be amended.
+
+## Commits
+
+- Use Conventional Commit-style subjects: `<type>: <summary>` or
+  `<type>(<scope>): <summary>`.
+- Types: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `build`, `ci`, `chore`,
+  and `perf`. Use `style` for formatting without behavior changes.
+- Keep subjects concise, preferably within 72 characters, and describe the result.
+- Group one coherent change per commit. Keep unrelated cleanup separate.
+- Explain compatibility changes in the body; use `!` and a `BREAKING CHANGE:` footer
+  when a public contract changes incompatibly.
+- Do not commit secrets, generated build output, local experiment artifacts, or
+  unrelated working-tree changes. Review the staged diff before committing.
+- Never force-push, reset away user work, or amend published commits without explicit
+  authorization. Do not create commits or push merely because files were edited.
+
+## Issues And Pull Requests
+
+- Track planned work as GitHub issues when possible. Group ad hoc work into a
+  focused PR and associate it with the intended release milestone when known.
+- Use connected GitHub tooling where it works. For CLI commands that infer a repo,
+  always pass `--repo Wor-chain-dle/engine`; do not use the web repository by mistake.
+- Inspect the current branch, worktree, base branch, commits, and full diff before
+  creating a PR. Do not create a PR whose head is `main`.
+- Create feature PRs as drafts unless the developer requests ready-for-review.
+- Feature PR titles use a conventional prefix and should fit within 70 characters.
+- PR bodies explain the concrete problem, resulting behavior, compatibility impact,
+  and verification. State checks actually run and any material limitations.
+- Include related issues as `Closes #number`. For issues in another repository, use
+  a fully qualified reference such as `Ootzk/Wor-chain-dle#249`.
+- A feature PR into a release branch may not auto-close its issues until release.
+  Add every completed issue to the release PR body with `Closes #number`.
+- Assignee: `Ootzk`.
+- Milestone: target engine version such as `v0.1.0`; create it if missing once the
+  target version is established. Leave unscheduled backlog work without a milestone.
+- Choose labels by change type from the taxonomy below. Create missing relevant
+  labels when setting up repository metadata rather than assuming all exist.
+- Apply labels to new and ongoing work, not completed historical items.
+
+| Label                      | Use                                                      |
+| -------------------------- | -------------------------------------------------------- |
+| `development: enhancement` | New engine capabilities or public APIs                   |
+| `development: refactor`    | Internal restructuring without intended behavior changes |
+| `development: content`     | Dictionary or other engine data additions                |
+| `development: devops`      | Tooling, CI, packaging, publishing, and agent workflows  |
+| `🐛 bug`                   | Incorrect behavior or regressions                        |
+| `📝 documentation`         | Documentation changes                                    |
+| `💥 breaking change`       | Incompatible public contracts                            |
+| `🔖 versioning`            | Required on release-to-main PRs                          |
+
+## Versions And Releases
+
+- Use full semantic versions. Branches use `release/v0.1.0`; milestones, tags,
+  release titles, and prose use `v0.1.0`; manifests use bare `0.1.0`.
+- Public contracts include exported types and functions, validation and feedback
+  behavior, termination semantics, serialized state, and observation formats.
+- Use patch releases for compatible fixes, minor releases for compatible features,
+  and major releases for incompatible changes after v1.0.0. During v0.x development,
+  call out incompatible changes explicitly and use a minor bump for them.
+- Once npm manifests exist, update `package.json` and `package-lock.json` together
+  with `npm version <version> --no-git-tag-version`. Review the resulting diff.
+- Do not introduce the web-only `PATCH_NOTES_VERSION` into this package.
+- Preserve dictionary order during extraction: web Daily answers depend on it.
+  Dictionary and rules changes must be identifiable in reproducible experiments;
+  document their versioning scheme when those interfaces are implemented.
+- Release PRs summarize changes, compatibility or migration notes, verification,
+  and all issues completed in the release. Use that body for GitHub Release notes.
+- Before release, run available package checks and validate the packed artifact in
+  a consumer. Do not treat success against a sibling source checkout as proof that
+  an installed package works.
+- After CI succeeds on a push to `main`, `scripts/release.mjs` requires the exact
+  merged `Release v{version}` PR from `release/v{version}` and uses its body as notes.
+  It tags that merge SHA and attaches the compiled `.tgz` and SHA-256 checksum to
+  a GitHub Release. No registry credentials or npm publication are involved.
+- Failed release jobs may be rerun: drafts resume, existing published releases stay
+  unchanged, and tags pointing to another commit are rejected. Never replace assets
+  on a published release; fix released problems with a new version.
+- Keep release tags and package versions aligned; do not overwrite published
+  versions or move existing release tags. Fix published problems in a new version.
+
+## Continuous Integration
+
+- `.github/workflows/ci.yml` runs on all pull requests and pushes to `main` and
+  `release/**`. Its `test` job provides the check required by the main Ruleset.
+- The `test` job uses Node.js 22, Python 3.11, and read-only permissions. The
+  dependent main-push-only `release` job has contents-write and PR-read permissions
+  to create tags and GitHub Release assets. Neither job merges PRs or deploys the web.
+- CI runs `npm ci`, `npm run lint`, `npm test`, `npm run test:python`, `npm run build`, and
+  `npm run test:package`. Do not silently skip missing checks or pass an empty suite.
+- Package verification packs the compiled artifact, installs it in an isolated
+  temporary consumer, executes it, and type-checks its installed declarations.
+
+## Structure And Commands
+
+- `src/`: browser-independent runtime code; `src/index.ts` is the public entrypoint.
+- `src/constants/`: ordered dictionaries and their content fingerprints.
+- `tests/`: Node test runner suites for engine behavior and original-source parity.
+- `tests/fixtures/upstream/`: unmodified pinned source and byte fingerprints.
+  Never run a formatter over these fixtures. Follow `docs/EXTRACTION.md` when
+  intentionally changing the compatibility baseline.
+- `scripts/verify-package.mjs`: installed-artifact and declaration verification.
+- `scripts/release.mjs`: exact-merge release notes, tag, tarball/checksum publication.
+- `docs/EXTRACTION.md`: source attribution, adaptations, and compatibility limits.
+- `src/input.ts` and `docs/INPUT_PROTOCOL.md`: model-neutral input session and its
+  versioned actions, observations, feedback, and counter semantics.
+- `src/jsonl.ts`: versioned process-local request dispatcher; exported through
+  `@wor-chain-dle/engine/jsonl`, separately from the browser entrypoint.
+- `bin/wor-chain-dle-jsonl.mjs`: bounded UTF-8 stdio framing, no stdout diagnostics.
+- `python/wor_chain_dle/`: Python 3.9+ reference client, no third-party dependencies.
+- `python/play.py`, `python/wor_chain_dle/terminal.py`: human-readable terminal demo;
+  rendering and messages belong in this adapter, not engine rule code. Physical
+  terminal line editing must not be reported as observed engine key actions.
+- `python/tests/`, `python/verify_bridge.py`: lifecycle tests and 100-case parity
+  validation. The validator is not a solver benchmark or training framework.
+- `docs/JSONL_PROTOCOL.md`: wire schema, limits, batching, client, and measurements.
+- Change transport versions, client constants, documentation, and tests together.
+  Transport errors must not be confused with ordinary rejected game actions.
+  Never automatically retry uncertain actions after a timeout. Batch replay is
+  not equivalent to an adaptive policy receiving observations between actions.
+- `dist/`: generated JavaScript/declarations; ignored by Git and included in packs.
+- `npm ci`: install the locked development and runtime dependencies.
+- `npm run play`: build and launch the terminal demo; forwards arguments such as
+  `--solution prior` or `--seed 123`. Uses `python3`; custom Python executables can
+  invoke `python/play.py` directly after building.
+- `npm run lint`: Prettier check and TypeScript type check.
+- `npm run format`: format maintained files; upstream fixtures are excluded.
+- `npm run build`: compile the ESM package and declarations.
+- `npm test`: build and run behavior and source-parity tests.
+- `npm run test:package`: build, pack, and test the installed artifact; requires
+  registry access to install runtime dependencies into the temporary consumer and
+  Python to check the installed client/JSONL executable.
+- `npm run test:python`: build, run Python client tests, and compare 100 games in
+  three transport modes against direct engine execution. Set `PYTHON` if needed.
+- `npm pack`: build a local tarball without publishing it.
+
+## Extraction And Verification
+
+- Extract by copying into this repository first; do not modify the source web
+  repository during engine implementation. Record the source commit, file paths,
+  and upstream attribution. Once the engine is verified, integrate it on a separate
+  experimental branch in the web repository and run its regression checks before
+  adoption. Keep that integration separate from repository or service URL migration.
+- Preserve current web behavior before redesigning APIs. Check source behavior,
+  not only summaries in documentation, and add parity tests for extracted rules.
+- Standard rules are five-letter English words and at most six submitted guesses.
+  The chain locks the last letter for guesses 1→2, 3→4, 5→6, and the first letter
+  for guesses 2→3 and 4→5.
+- The current web game checks chain-based early loss after the fifth submitted
+  guess, when the sixth guess cannot solve the answer. Do not apply that early-loss
+  predicate after every turn. A winning guess takes precedence over loss checks.
+- Preserve duplicate-letter feedback: correct matches consume answer occurrences
+  before present matches. Keep answer words and allowed guesses distinct; Custom
+  puzzles can use answers from either list.
+- Keep hidden answers out of agent observations. Agents submit complete words,
+  including the locked chain letter, through the core `step` or input `submit`.
+  Character agents use input sessions with editable letters, Backspace, and Enter;
+  locked letters are supplied automatically and cannot be edited.
+- Both input modes share core validation and termination. Direct submissions must
+  not fabricate letter/Delete/Enter presses. Keep feedback language- and model-neutral;
+  do not add LLM special tokens or localized strings to runtime code.
+- Input failures preserve game and draft but can update action counters. Terminal
+  actions are no-ops. Never infer untracked historical input metrics when attaching
+  a session to an existing game. Update protocol documentation and tests for changes.
+- Add meaningful tests for rule changes, invalid actions, terminal states,
+  determinism, serialization contracts, and hidden-answer isolation as implemented.
+- Extraction and web integration are separate reviewable changes. Verify web
+  compatibility before replacing its existing implementation.
+- Documentation-only changes require diff and link/path review, not a full test
+  suite. Code changes require the relevant unit/parity and package checks.
+- Preserve the upstream MIT attribution when extracting code and dictionary data.
+
+## Web Compatibility Contract
+
+- Engine adoption must preserve existing player flows and results. Extraction is
+  not an opportunity to silently fix behavior, reorder dictionaries, change answer
+  schedules, or reset records. Propose intentional changes separately.
+- Daily currently selects `WORDS[dayIndex % WORDS.length]`, where `dayIndex` is the
+  local calendar-day difference from `2026-02-16`, calculated using Temporal.
+  It does not shuffle at runtime or use a runtime seed.
+- `scripts/shuffle-wordlist.js` in the web repository has seed `20260216`, but that
+  is an offline file-generation tool. Preserve the committed answer list exactly;
+  do not rerun the shuffler or regenerate the list from that seed during extraction.
+- Preserve both dictionaries' contents, normalization, and the answer list's order
+  and length. Record a content fingerprint for parity verification. Keep package,
+  dictionary, and selection-algorithm versions identifiable for experiments.
+- Event selection hashes `event.answerSeed`, uses its existing seeded PRNG and
+  Fisher-Yates permutation, and indexes by days from the same epoch. Preserve the
+  hash, PRNG, shuffle order, and modulo behavior, not merely the seed string.
+  Extracting selection helpers does not bring seasonal Event mechanics into scope.
+- Practice currently uses `Math.random()` for selection. Add injectable randomness
+  for experiments without changing the web's selection policy. Custom answers come
+  from decoded puzzle URLs and may belong to either dictionary.
+- Shared selection helpers should accept explicit dates, seeds, or randomness.
+  Web and CLI adapters choose the policy and obtain the local date; the game core
+  receives the selected solution. Do not replace local dates with UTC or Date-based
+  gameplay logic. Preserve web midnight countdown and refresh behavior on integration.
+- Before web adoption, compare old and new selection across a complete dictionary
+  cycle, relevant Event seeds, and boundary dates. Cover epoch, cycle wraparound,
+  local-midnight/DST behavior, and pre-epoch behavior explicitly. If a boundary
+  exposes an existing bug, document it and separate its fix from compatibility work.
+- Replay representative games against both implementations, comparing accepted
+  and rejected submissions, feedback, chain locks, actual guess counts, and terminal
+  reasons. Preserve web statistics, achievements, share output, and saved-game
+  restoration through adapters; do not change storage schemas as an incidental
+  effect of replacing the engine.
+
+## Working Practices
+
+- Keep edits scoped to the requested task and preserve unrelated changes.
+- Check repository and branch before mutations in this multi-repository workspace.
+- After a developer merge, update the target branch, remove the merged local branch
+  only when safe, and prune stale remote refs. Squash merges may not satisfy Git's
+  ancestry-based deletion check; verify the merge instead of force-deleting blindly.
+- Reusable workflows belong in `.agents/skills/` when introduced; tool-specific
+  wrappers should delegate to them. No repository skills are installed yet.
+- Communicate with the developer in Korean. Summaries should briefly state what
+  changed, what was verified, and what remains.

@@ -1,0 +1,58 @@
+{
+  "name": "@wor-chain-dle/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic Wor-chain-dle rules and answer selection for web, CLI, and solving agents",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./jsonl": {
+      "types": "./dist/jsonl.d.ts",
+      "import": "./dist/jsonl.js",
+      "default": "./dist/jsonl.js"
+    }
+  },
+  "bin": {
+    "wor-chain-dle-jsonl": "bin/wor-chain-dle-jsonl.mjs"
+  },
+  "files": [
+    "dist",
+    "docs/EXTRACTION.md",
+    "docs/INPUT_PROTOCOL.md",
+    "docs/JSONL_PROTOCOL.md",
+    "bin",
+    "python/wor_chain_dle/*.py"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wor-chain-dle/engine.git"
+  },
+  "scripts": {
+    "play": "npm run build && python3 python/play.py",
+    "build": "tsc -p tsconfig.json",
+    "lint": "prettier --check . && tsc --noEmit -p tsconfig.json",
+    "format": "prettier --write .",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "test:package": "npm run build && node scripts/verify-package.mjs",
+    "test:python": "npm run build && node scripts/verify-python.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "temporal-polyfill": "0.3.1"
+  },
+  "devDependencies": {
+    "prettier": "3.10.1",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'release/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check patch whitespace
+        run: git show --format= --check HEAD
+      - name: Check package
+        env:
+          CI: 'true'
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run test:python
+          npm run build
+          npm run test:package
+
+  release:
+    name: release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Build release package
+        run: |
+          npm ci
+          npm run build
+      - name: Create version tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release.mjs
