@@ -70,4 +70,4 @@ The package contains ESM JavaScript and TypeScript declarations. Runtime code ha
 
 `GameState` and `StepResult.state` contain the hidden solution. Only `Observation` is intended for solvers. This API separation prevents accidental answer exposure; it is not a security sandbox against code that can access privileged state.
 
-No registry publication, UI integration, seasonal game mechanics, solver strategy, or CLI protocol is part of this extraction. The package remains private until publishing is configured separately.
+No registry publication, UI integration, seasonal game mechanics, or solver strategy is part of this extraction. The subsequent JSONL transport is documented in [JSONL_PROTOCOL.md](JSONL_PROTOCOL.md). The package remains private until publishing is configured separately.
