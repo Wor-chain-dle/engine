@@ -142,6 +142,11 @@ import this file and contain only tool-specific notes.
 
 ## Extraction And Verification
 
+- Extract by copying into this repository first; do not modify the source web
+  repository during engine implementation. Record the source commit, file paths,
+  and upstream attribution. Once the engine is verified, integrate it on a separate
+  experimental branch in the web repository and run its regression checks before
+  adoption. Keep that integration separate from repository or service URL migration.
 - Preserve current web behavior before redesigning APIs. Check source behavior,
   not only summaries in documentation, and add parity tests for extracted rules.
 - Standard rules are five-letter English words and at most six submitted guesses.
@@ -162,6 +167,41 @@ import this file and contain only tool-specific notes.
 - Documentation-only changes require diff and link/path review, not a full test
   suite. Run implementation checks once actual tooling exists.
 - Preserve the upstream MIT attribution when extracting code and dictionary data.
+
+## Web Compatibility Contract
+
+- Engine adoption must preserve existing player flows and results. Extraction is
+  not an opportunity to silently fix behavior, reorder dictionaries, change answer
+  schedules, or reset records. Propose intentional changes separately.
+- Daily currently selects `WORDS[dayIndex % WORDS.length]`, where `dayIndex` is the
+  local calendar-day difference from `2026-02-16`, calculated using Temporal.
+  It does not shuffle at runtime or use a runtime seed.
+- `scripts/shuffle-wordlist.js` in the web repository has seed `20260216`, but that
+  is an offline file-generation tool. Preserve the committed answer list exactly;
+  do not rerun the shuffler or regenerate the list from that seed during extraction.
+- Preserve both dictionaries' contents, normalization, and the answer list's order
+  and length. Record a content fingerprint for parity verification. Keep package,
+  dictionary, and selection-algorithm versions identifiable for experiments.
+- Event selection hashes `event.answerSeed`, uses its existing seeded PRNG and
+  Fisher-Yates permutation, and indexes by days from the same epoch. Preserve the
+  hash, PRNG, shuffle order, and modulo behavior, not merely the seed string.
+  Extracting selection helpers does not bring seasonal Event mechanics into scope.
+- Practice currently uses `Math.random()` for selection. Add injectable randomness
+  for experiments without changing the web's selection policy. Custom answers come
+  from decoded puzzle URLs and may belong to either dictionary.
+- Shared selection helpers should accept explicit dates, seeds, or randomness.
+  Web and CLI adapters choose the policy and obtain the local date; the game core
+  receives the selected solution. Do not replace local dates with UTC or Date-based
+  gameplay logic. Preserve web midnight countdown and refresh behavior on integration.
+- Before web adoption, compare old and new selection across a complete dictionary
+  cycle, relevant Event seeds, and boundary dates. Cover epoch, cycle wraparound,
+  local-midnight/DST behavior, and pre-epoch behavior explicitly. If a boundary
+  exposes an existing bug, document it and separate its fix from compatibility work.
+- Replay representative games against both implementations, comparing accepted
+  and rejected submissions, feedback, chain locks, actual guess counts, and terminal
+  reasons. Preserve web statistics, achievements, share output, and saved-game
+  restoration through adapters; do not change storage schemas as an incidental
+  effect of replacing the engine.
 
 ## Working Practices
 
